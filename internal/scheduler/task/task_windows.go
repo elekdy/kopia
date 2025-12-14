@@ -31,11 +31,11 @@ func (w *windowsTaskScheduler) Create(ctx context.Context, opts TaskOptions) err
 	}
 
 	// Build the task action (command to execute)
-	taskAction := fmt.Sprintf("\"%s\"", opts.Command)
+	taskAction := escapeWindowsArg(opts.Command)
 	if len(opts.Arguments) > 0 {
-		// Quote each argument to handle spaces and special characters
+		// Escape each argument according to Windows cmd.exe rules
 		for _, arg := range opts.Arguments {
-			taskAction += fmt.Sprintf(" \"%s\"", arg)
+			taskAction += " " + escapeWindowsArg(arg)
 		}
 	}
 
@@ -337,4 +337,67 @@ func parseTime(timeStr string) *time.Time {
 	}
 
 	return nil
+}
+
+// escapeWindowsArg escapes a command line argument for Windows.
+// It follows the rules documented by Microsoft for CommandLineToArgvW.
+func escapeWindowsArg(arg string) string {
+	// If the argument is empty, return empty quotes
+	if arg == "" {
+		return "\"\""
+	}
+
+	// Check if the argument needs quoting
+	needsQuote := false
+	for _, r := range arg {
+		if r == ' ' || r == '\t' || r == '\n' || r == '\v' || r == '"' {
+			needsQuote = true
+			break
+		}
+	}
+
+	// If no special characters and no quotes, return as-is
+	if !needsQuote && !strings.Contains(arg, "\"") {
+		return arg
+	}
+
+	// Build the escaped argument
+	var result strings.Builder
+	result.WriteRune('"')
+
+	backslashCount := 0
+
+	for _, r := range arg {
+		switch r {
+		case '\\':
+			// Count consecutive backslashes
+			backslashCount++
+		case '"':
+			// Escape all preceding backslashes and the quote
+			for i := 0; i <= backslashCount; i++ {
+				result.WriteRune('\\')
+			}
+
+			result.WriteRune(r)
+			backslashCount = 0
+		default:
+			// Write any accumulated backslashes
+			for i := 0; i < backslashCount; i++ {
+				result.WriteRune('\\')
+			}
+
+			result.WriteRune(r)
+			backslashCount = 0
+		}
+	}
+
+	// Escape trailing backslashes before closing quote
+	for i := 0; i < backslashCount; i++ {
+		result.WriteRune('\\')
+		result.WriteRune('\\')
+	}
+
+	result.WriteRune('"')
+
+	return result.String()
 }
