@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -90,10 +91,5 @@ func truncateString(s string, maxLen int) string {
 }
 
 func stringRepeat(s string, count int) string {
-	result := ""
-	for i := 0; i < count; i++ {
-		result += s
-	}
-
-	return result
+	return strings.Repeat(s, count)
 }

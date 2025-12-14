@@ -33,7 +33,10 @@ func (w *windowsTaskScheduler) Create(ctx context.Context, opts TaskOptions) err
 	// Build the task action (command to execute)
 	taskAction := fmt.Sprintf("\"%s\"", opts.Command)
 	if len(opts.Arguments) > 0 {
-		taskAction += " " + strings.Join(opts.Arguments, " ")
+		// Quote each argument to handle spaces and special characters
+		for _, arg := range opts.Arguments {
+			taskAction += fmt.Sprintf(" \"%s\"", arg)
+		}
 	}
 
 	// Determine the schedule type and build schtasks command
@@ -87,8 +90,10 @@ func (w *windowsTaskScheduler) Create(ctx context.Context, opts TaskOptions) err
 	}
 
 	// Run as current user by default
-	if opts.RunAsUser == "" {
-		args = append(args, "/ru", "SYSTEM")
+	// Note: Leaving /ru empty makes it run as the current user
+	// We could also explicitly specify the current user with "/ru", username
+	if opts.RunAsUser != "" {
+		args = append(args, "/ru", opts.RunAsUser)
 	}
 
 	log(ctx).Debugf("Creating scheduled task with schtasks: %v", args)
