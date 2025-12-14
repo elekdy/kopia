@@ -167,6 +167,7 @@ type App struct {
 	repository   commandRepository
 	logs         commandLogs
 	notification commandNotification
+	schedule     commandSchedule
 
 	// testability hooks
 	testonlyIgnoreMissingRequiredFeatures bool
@@ -315,6 +316,7 @@ func (c *App) setup(app *kingpin.Application) {
 	c.mount.setup(c, app)
 	c.maintenance.setup(c, app)
 	c.repository.setup(c, app)
+	c.schedule.setup(c, app)
 }
 
 // commandParent is implemented by app and commands that can have sub-commands.
